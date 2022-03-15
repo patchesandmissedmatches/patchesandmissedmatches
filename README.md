@@ -17,7 +17,7 @@ Clone the repository to a location of your choice using [git](https://git-scm.co
 Files and folders
 
 * [`Methods`](Methods) contains helper files used in the main files. There are 9 helper files.
-    * ['patch_extraction_functions.py'](Methods/patch_extraction_functions.py) - It has functions for extracting patches from GitHub
+    * ['patchExtractionFunctions.py'](Methods/patchExtractionFunctions.py) - It has functions for extracting patches from GitHub
 	* [`analysis.py`](Methods/analysis.py) - It is used for plotting the classfication results.
 	* [`classifier.py`](Methods/classifier.py) - It contains helper functions used when classifying.
 	* [`commitLoader.py`](Methods/) - File with helper functions used on/for commit data
