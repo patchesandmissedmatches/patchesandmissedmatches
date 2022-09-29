@@ -1,4 +1,6 @@
-import urllib.request
+# Replaced the library urllib.request with requests and 
+# changed the code to suit the new library
+import requests
 import json
 
 from dateutil import parser
@@ -7,23 +9,20 @@ from dateutil import parser
 class GetOutOfLoop(Exception):
     pass
 
+
 def get_response(url, token_list, ct):
     jsonData = None
 
-#     token_list, len_tokens = tokens()
+    #     token_list, len_tokens = tokens()
     len_tokens = len(token_list)
+    # changes here are inline with the library change from urllib.request->requests
     try:
-        if ct == len_tokens:
-            ct = 0
-        reqr = urllib.request.Request(url)
-        reqr.add_header('Authorization', 'token %s' % token_list[ct])
-        opener = urllib.request.build_opener(urllib.request.HTTPHandler(debuglevel=1))
-        content = opener.open(reqr).read()
+        ct = ct % len_tokens
+        headers = {'Authorization': 'Bearer {}'.format(token_list[ct])}
+        request = requests.get(url, headers=headers)
+        jsonData = json.loads(request.content)
         ct += 1
-        jsonData = json.loads(content)
-        # return jsonData, self.ct
     except Exception as e:
-        pass
         print(e)
     return jsonData, ct
 
@@ -49,7 +48,7 @@ def repo_dates(repo, token_list, ct):
     return created_at, updated_at, ct
 
 
-def divergence_date(mainline, variant, token_list, ct, least_date = '', diverge_date = ''):
+def divergence_date(mainline, variant, token_list, ct, least_date='', diverge_date=''):
     ahead = 0
     behind = 0
     created_ml, date_ml, ct = repo_dates(mainline, token_list, ct)
@@ -104,40 +103,58 @@ def pr_patches(repo, diverge_date, least_date, token_list, ct):
     count = 0
     try:
         while True:
-            url = 'https://api.github.com/repos/' + repo + '/pulls?state=closed&sort=created&direction=desc&per_per=100&page=' + str(p)
+            # I rearranged the order of the parameters since the previous ordering would only yield 30 
+            # objects (pull requests) in the arraylist instead of 100
+            url = 'https://api.github.com/repos/' + repo + '/pulls?page=' + str(
+                p) + '&per_page=100&state=closed&sort=created&direction=desc'
             p = p + 1
             count = 1
+
             pulls_arrays, ct = get_response(url, token_list, ct)
-            tot_com = tot_com + len(pulls_arrays)
-            # print(p, tot_com)
+            # tot_com = tot_com + len(pulls_arrays)
+            # print(url)
             if pulls_arrays is not None:
+                print(url)
+                # pr = 0
                 if len(pulls_arrays) == 0:
                     break
                 for pull_obj in pulls_arrays:
-                    pull_created_at = pull_obj['created_at']
-                    if parser.parse(pull_created_at) > parser.parse(least_date):
-                        continue
-                        # raise GetOutOfLoop
-
-                    if pull_obj['merged_at'] is not None:
-                        if parser.parse(pull_obj['merged_at']) > parser.parse(least_date):
+                    # I added a try and accept block since this step would yield and exception of the repo 
+                    # pair apache/kafka->linkedin/kafka. For some reason, the exception was not being raised with other 
+                    # repo pairs like learningequality/pycaption->pbs/pycaption and 
+                    # hzdg/django-enumfields->druids/django-choice-enumfields
+                    # I guess there are some commits in apache/kafka->linkedin/kafka that were causing the error. 
+                    # A workaround was to ignore them the pull requests that were yielding the exception
+                    try:
+                        pull_created_at = pull_obj['created_at']
+                        if parser.parse(pull_created_at) > parser.parse(least_date):
                             continue
-                        # print(repo, 'parser.parse(pull_obj[merged_at]) = ', parser.parse(pull_obj['merged_at']))
-                        # print(repo, 'parser.parse(diverge_date) = ', parser.parse(diverge_date))
-
-                        if parser.parse(pull_obj['merged_at']) < parser.parse(diverge_date):
-                            count = 0
-                            break
                             # raise GetOutOfLoop
-                        pr_all_merged.append(pull_obj['number'])
-                        pull_title = pull_obj['title'].lower().replace(';', '-').replace(',', '-')
-                        for bug in bug_keyword:
-                            if bug in pull_title:
-                                pr.append(pull_obj['number'])
-                                title.append(pull_title)
+
+                        if pull_obj['merged_at'] is not None:
+                            if parser.parse(pull_obj['merged_at']) > parser.parse(least_date):
+                                continue
+                            # print(repo, 'parser.parse(pull_obj[merged_at]) = ', parser.parse(pull_obj['merged_at']))
+                            # print(repo, 'parser.parse(diverge_date) = ', parser.parse(diverge_date))
+
+                            if parser.parse(pull_obj['merged_at']) < parser.parse(diverge_date):
+                                count = 0
                                 break
-                if count == 0:
-                    break
+                                # raise GetOutOfLoop
+                            pr_all_merged.append(pull_obj['number'])
+                            pull_title = pull_obj['title'].lower().replace(';', '-').replace(',', '-')
+                            for bug in bug_keyword:
+                                if bug in pull_title:
+                                    pr.append(pull_obj['number'])
+                                    title.append(pull_title)
+                                    break
+                        if count == 0:
+                            break
+                    except Exception as e:
+                        print(e)
+            if count == 0:
+                break
+
     except GetOutOfLoop:
         pass
 
