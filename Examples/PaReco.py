@@ -219,263 +219,268 @@ class PaReco:
         start = time.time()
 
         for pr_nr in self.repo_data:
-            self.verbosePrint(f'Pr_nr: {pr_nr}')
-            destination_sha = self.repo_data[pr_nr]['destination_sha']
+            if int(pr_nr) >=0:
+                try:
+                    self.verbosePrint(f'Pr_nr: {pr_nr}')
 
-            self.result_dict[pr_nr] = {}
+                    destination_sha = self.repo_data[pr_nr]['destination_sha']
 
-            dup_count = 1
+                    self.result_dict[pr_nr] = {}
 
-            for files in self.repo_data[pr_nr]['commits_data']:
-                for file in files:
-                    self.result_dict[pr_nr][file] ={}
-                    file_ext = commitloader.get_file_type(file)
+                    dup_count = 1
 
-                    emptyFilePath = ''
+                    for files in self.repo_data[pr_nr]['commits_data']:
+                        for file in files:
+                            self.result_dict[pr_nr][file] ={}
+                            file_ext = commitloader.get_file_type(file)
 
-                    if file_ext == 2:
-                        emptyFilePath = 'EmptyFiles/EmptyC.c'
-                    elif file_ext == 3:
-                        emptyFilePath = 'EmptyFiles/EmptyJava.java'
-                    elif file_ext == 4:
-                        emptyFilePath = 'EmptyFiles/EmptyShell.sh'
-                    elif file_ext == 5:
-                        emptyFilePath = 'EmptyFiles/EmptyPython.py'
-                    elif file_ext == 6:
-                        emptyFilePath = 'EmptyFiles/EmptyPerl.pl'
-                    elif file_ext == 7:
-                        emptyFilePath = 'EmptyFiles/EmptyPHP.php'
-                    elif file_ext == 8:
-                        emptyFilePath = 'EmptyFiles/EmptyRuby.rb'
+                            emptyFilePath = ''
 
-                    if len(files[file]) != 0:
-                        try:
-                            if file_ext != 1:
-                                common.ngram=4
-                                parent = ''
-                                sha =''
-                                fileName = ''
-                                fileDir = ''
+                            if file_ext == 2:
+                                emptyFilePath = 'EmptyFiles/EmptyC.c'
+                            elif file_ext == 3:
+                                emptyFilePath = 'EmptyFiles/EmptyJava.java'
+                            elif file_ext == 4:
+                                emptyFilePath = 'EmptyFiles/EmptyShell.sh'
+                            elif file_ext == 5:
+                                emptyFilePath = 'EmptyFiles/EmptyPython.py'
+                            elif file_ext == 6:
+                                emptyFilePath = 'EmptyFiles/EmptyPerl.pl'
+                            elif file_ext == 7:
+                                emptyFilePath = 'EmptyFiles/EmptyPHP.php'
+                            elif file_ext == 8:
+                                emptyFilePath = 'EmptyFiles/EmptyRuby.rb'
 
-                                if len(files[file]) == 1:
-                                    parent = files[file][0]['parent_sha']
-                                    sha = files[file][0]['commit_sha']
-                                    fileName = commitloader.fileName(file)
-                                    fileDir = commitloader.fileDir(file)
-                                    status = files[file][0]['status']
-                                else:
-                                    first_commit, last_commit = classifier.getFirstLastCommit(self.repo_data[pr_nr]['commits_data'])       
-                                    parent = first_commit['parent_sha']
-                                    sha = last_commit['commit_sha']
-                                    fileName = commitloader.fileName(file)
-                                    fileDir = commitloader.fileDir(file)
-                                    status = first_commit['status']
+                            if len(files[file]) != 0:
+                                try:
+                                    if file_ext != 1:
+                                        common.ngram=4
+                                        parent = ''
+                                        sha =''
+                                        fileName = ''
+                                        fileDir = ''
 
-                                    """
-                                        Get the file from the variant2
-                                    """
-                                new_file_dir = ''
-                                for h in fileDir:
-                                    new_file_dir = new_file_dir + h + '/'
-                                        
-                                if self.ct == self.len_tokens:
-                                    self.ct = 0
+                                        if len(files[file]) == 1:
+                                            parent = files[file][0]['parent_sha']
+                                            sha = files[file][0]['commit_sha']
+                                            fileName = commitloader.fileName(file)
+                                            fileDir = commitloader.fileDir(file)
+                                            status = files[file][0]['status']
+                                        else:
+                                            first_commit, last_commit = classifier.getFirstLastCommit(self.repo_data[pr_nr]['commits_data'])       
+                                            parent = first_commit['parent_sha']
+                                            sha = last_commit['commit_sha']
+                                            fileName = commitloader.fileName(file)
+                                            fileDir = commitloader.fileDir(file)
+                                            status = first_commit['status']
 
-                                destPath, destUrl_ = classifier.getFileFromDest(self.repo_dir_files, self.variant2, destination_sha, self.repo_file, file, new_file_dir, fileName, self.token_list[self.ct])
-                                self.ct += 1
+                                            """
+                                                Get the file from the variant2
+                                            """
+                                        new_file_dir = ''
+                                        for h in fileDir:
+                                            new_file_dir = new_file_dir + h + '/'
 
-                                if status =='added':
-                                    """
-                                        Get the file after the patch from the variant1
-                                    """
-                                    if self.ct == self.len_tokens:
-                                        self.ct = 0
-                                    fileAfterPatchDir, fileAfterPatchUrlAdd_= classifier.getFileAfterPatch(self.repo_dir_files, self.variant1, sha, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
-                                    self.ct += 1
+                                        if self.ct == self.len_tokens:
+                                            self.ct = 0
 
-                                    """
-                                        Create the patch file in unified diff format
-                                    """
-                                    patch_lines = classifier.unified_diff(emptyFilePath, fileAfterPatchDir)
-                                    patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
-                                    patchName = fileName.split('.')[0]
-                                    patchPath, dup_count = classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
+                                        destPath, destUrl_ = classifier.getFileFromDest(self.repo_dir_files, self.variant2, destination_sha, self.repo_file, file, new_file_dir, fileName, self.token_list[self.ct])
+                                        self.ct += 1
 
-                                    _class_patch = ''
-                                    x_patch_patch, x_patch = classifier.processPatch(patchPath, destPath, 'patch')
-                                    added = x_patch_patch.added()
-                                    match_items_patch = x_patch.match_items()
-                                    source_hashes = x_patch.source_hashes()
+                                        if status =='added':
+                                            """
+                                                Get the file after the patch from the variant1
+                                            """
+                                            if self.ct == self.len_tokens:
+                                                self.ct = 0
+                                            fileAfterPatchDir, fileAfterPatchUrlAdd_= classifier.getFileAfterPatch(self.repo_dir_files, self.variant1, sha, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
+                                            self.ct += 1
 
-                                    hunk_matches_patch = classifier.find_hunk_matches_w_important_hash(match_items_patch, 'ED', added, source_hashes)
+                                            """
+                                                Create the patch file in unified diff format
+                                            """
+                                            patch_lines = classifier.unified_diff(emptyFilePath, fileAfterPatchDir)
+                                            patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
+                                            patchName = fileName.split('.')[0]
+                                            patchPath, dup_count = classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
 
-                                    hunk_classifications = []
-                                    for patch_nr in hunk_matches_patch:
-                                        class_buggy =''
-                                        class_patch = hunk_matches_patch[patch_nr]['class']
+                                            _class_patch = ''
+                                            x_patch_patch, x_patch = classifier.processPatch(patchPath, destPath, 'patch')
+                                            added = x_patch_patch.added()
+                                            match_items_patch = x_patch.match_items()
+                                            source_hashes = x_patch.source_hashes()
 
-                                        hunk_class = classifier.classify_hunk(class_buggy, class_patch)
-                                        hunk_classifications.append(hunk_class)
+                                            hunk_matches_patch = classifier.find_hunk_matches_w_important_hash(match_items_patch, 'ED', added, source_hashes)
 
+                                            hunk_classifications = []
+                                            for patch_nr in hunk_matches_patch:
+                                                class_buggy =''
+                                                class_patch = hunk_matches_patch[patch_nr]['class']
+
+                                                hunk_class = classifier.classify_hunk(class_buggy, class_patch)
+                                                hunk_classifications.append(hunk_class)
+
+                                            result_mod = {}
+                                            result_mod['type'] = 'ADDED'
+                                            result_mod['destPath'] = destPath
+                                            result_mod['destUrl'] = destUrl_
+                                            result_mod['fileAfterPatchUrl'] = fileAfterPatchUrlAdd_
+                                            result_mod['fileBeforePatchUrl'] =  ''
+                                            result_mod['patchPath'] = patchPath
+                                            result_mod['processBuggy'] = ''
+                                            result_mod['processPatch'] = x_patch
+                                            result_mod['hunkMatchesBuggy'] = ''
+                                            result_mod['hunkMatchesPatch'] = hunk_matches_patch
+                                            result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
+
+                                            self.result_dict[pr_nr][file]['result'] = result_mod
+
+                                        elif status == 'removed':
+                                            """
+                                                Get the file before the patch from the variant1
+                                            """
+                                            if self.ct == self.len_lokens:
+                                                self.ct = 0
+                                            fileBeforePatchDir, fileBeforePatchUrlRem_= classifier.getFileBeforePatch(self.repo_dir_files, self.variant1, sha, parent, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
+                                            self.ct += 1
+
+                                            """
+                                                Create the patch file in unified diff format
+                                            """
+                                            patch_lines = classifier.unified_diff(fileBeforePatchDir, emptyFilePath)
+                                            patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
+                                            patchName = fileName.split('.')[0]
+                                            patchPath, dup_count= classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
+
+                                            _class_Buggy = ''
+                                            x_buggy_patch, x_buggy = classifier.processPatch(patchPath, destPath, 'buggy')
+                                            match_items_buggy = x_buggy.match_items()
+                                            removed = x_buggy_patch.removed()
+                                            source_hashes = x_buggy.source_hashes()
+
+                                            hunk_matches_buggy = classifier.find_hunk_matches_w_important_hash(match_items_buggy, 'MO', removed, source_hashes)
+
+                                            hunk_classifications = []
+                                            for patch_nr in hunk_matches_buggy:
+                                                class_buggy = hunk_matches_buggy[patch_nr]['class']
+                                                class_patch = ''
+
+                                                hunk_class = classifier.classify_hunk(class_buggy, class_patch)
+                                                hunk_classifications.append(hunk_class)
+
+                                            result_mod = {}
+                                            result_mod['type'] = 'DELETED'
+                                            result_mod['destPath'] = destPath
+                                            result_mod['destUrl'] = destUrl_
+                                            result_mod['fileAfterPatchUrl'] = ''
+                                            result_mod['fileBeforePatchUrl'] =  fileBeforePatchUrlRem_
+                                            result_mod['patchPath'] = patchPath
+                                            result_mod['processBuggy'] = x_buggy
+                                            result_mod['processPatch'] = ''
+                                            result_mod['hunkMatchesBuggy'] = hunk_matches_buggy
+                                            result_mod['hunkMatchesPatch'] = ''
+                                            result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
+                                            self.result_dict[pr_nr][file]['result'] = result_mod
+
+
+                                        elif status == 'modified':
+                                            """
+                                                Get the file before the patch from the variant1
+                                            """
+                                            if self.ct == self.len_tokens:
+                                                self.ct = 0
+                                            fileBeforePatchDir, fileBeforePatchUrlMod_ = classifier.getFileBeforePatch(self.repo_dir_files, self.variant1, sha, parent, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
+                                            self.ct += 1
+
+                                            """
+                                                Get the file after the patch from the variant1
+                                            """
+                                            if self.ct == self.len_tokens:
+                                                self.ct = 0
+                                            fileAfterPatchDir, fileAfterPatchUrlMod_ = classifier.getFileAfterPatch(self.repo_dir_files, self.variant1, sha, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
+                                            self.ct += 1
+
+                                            """
+                                                Create the patch file in unified diff format
+                                            """
+                                            patch_lines = classifier.unified_diff(fileBeforePatchDir, fileAfterPatchDir)
+                                            patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
+                                            patchName = fileName.split('.')[0]
+                                            patchPath, dup_count = classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
+
+                                            """
+                                                Compare file before patch to current file for missed opportunities
+                                            """
+                                            _class_Buggy = ''
+                                            x_buggy_patch, x_buggy = classifier.processPatch(patchPath, destPath, 'buggy')
+                                            match_items_buggy = x_buggy.match_items()
+                                            removed = x_buggy_patch.removed()
+                                            source_hashes = x_buggy.source_hashes()
+
+                                            hunk_matches_buggy = classifier.find_hunk_matches_w_important_hash(match_items_buggy, 'MO', removed, source_hashes)
+
+                                            """
+                                                Compare file after patch to current file for effort duplication
+                                            """
+                                            _class_patch = ''
+                                            x_patch_patch, x_patch = classifier.processPatch(patchPath, destPath, 'patch')
+                                            added = x_patch_patch.added()
+                                            match_items_patch = x_patch.match_items()
+                                            source_hashes = x_patch.source_hashes()
+
+                                            hunk_matches_patch = classifier.find_hunk_matches_w_important_hash(match_items_patch, 'ED', added, source_hashes)
+
+                                            if len(hunk_matches_buggy) != len(hunk_matches_patch):
+                                                self.verbosePrint("Error \n The two sequences are not the same")
+                                                self.verbosePrint(f"Seq matches buggy has length {len(hunk_matches_buggy)}")
+                                                self.verbosePrint(f"Seq matches patch has length {len(hunk_matches_patch)}")
+                                                continue
+
+                                            hunk_classifications = []
+                                            for patch_nr in hunk_matches_buggy:
+                                                class_buggy = hunk_matches_buggy[patch_nr]['class']
+                                                class_patch = hunk_matches_patch[patch_nr]['class']
+
+                                                hunk_class = classifier.classify_hunk(class_buggy, class_patch)
+                                                hunk_classifications.append(hunk_class)
+
+                                            result_mod = {}
+                                            result_mod['type'] = 'MODIFIED'
+                                            result_mod['destPath'] = destPath
+                                            result_mod['destUrl'] = destUrl_
+                                            result_mod['fileAfterPatchUrl'] = fileAfterPatchUrlMod_
+                                            result_mod['fileBeforePatchUrl'] =  fileBeforePatchUrlMod_
+                                            result_mod['patchPath'] = patchPath
+                                            result_mod['processBuggy'] = x_buggy
+                                            result_mod['processPatch'] = x_patch
+                                            result_mod['hunkMatchesBuggy'] = hunk_matches_buggy
+                                            result_mod['hunkMatchesPatch'] = hunk_matches_patch
+                                            result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
+
+                                            self.result_dict[pr_nr][file]['result'] = result_mod
+                                    else:
+                                        result_mod = {}
+                                        result_mod['patchClass'] = 'OTHER EXT'
+                                        self.result_dict[pr_nr][file]['result'] = result_mod
+
+                                except Exception as e:
                                     result_mod = {}
-                                    result_mod['type'] = 'ADDED'
-                                    result_mod['destPath'] = destPath
-                                    result_mod['destUrl'] = destUrl_
-                                    result_mod['fileAfterPatchUrl'] = fileAfterPatchUrlAdd_
-                                    result_mod['fileBeforePatchUrl'] =  ''
-                                    result_mod['patchPath'] = patchPath
-                                    result_mod['processBuggy'] = ''
-                                    result_mod['processPatch'] = x_patch
-                                    result_mod['hunkMatchesBuggy'] = ''
-                                    result_mod['hunkMatchesPatch'] = hunk_matches_patch
-                                    result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
-
+                                    result_mod['patchClass'] = 'ERROR'
                                     self.result_dict[pr_nr][file]['result'] = result_mod
-
-                                elif status == 'removed':
-                                    """
-                                        Get the file before the patch from the variant1
-                                    """
-                                    if self.ct == self.len_lokens:
-                                        self.ct = 0
-                                    fileBeforePatchDir, fileBeforePatchUrlRem_= classifier.getFileBeforePatch(self.repo_dir_files, self.variant1, sha, parent, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
-                                    self.ct += 1
-
-                                    """
-                                        Create the patch file in unified diff format
-                                    """
-                                    patch_lines = classifier.unified_diff(fileBeforePatchDir, emptyFilePath)
-                                    patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
-                                    patchName = fileName.split('.')[0]
-                                    patchPath, dup_count= classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
-
-                                    _class_Buggy = ''
-                                    x_buggy_patch, x_buggy = classifier.processPatch(patchPath, destPath, 'buggy')
-                                    match_items_buggy = x_buggy.match_items()
-                                    removed = x_buggy_patch.removed()
-                                    source_hashes = x_buggy.source_hashes()
-
-                                    hunk_matches_buggy = classifier.find_hunk_matches_w_important_hash(match_items_buggy, 'MO', removed, source_hashes)
-
-                                    hunk_classifications = []
-                                    for patch_nr in hunk_matches_buggy:
-                                        class_buggy = hunk_matches_buggy[patch_nr]['class']
-                                        class_patch = ''
-
-                                        hunk_class = classifier.classify_hunk(class_buggy, class_patch)
-                                        hunk_classifications.append(hunk_class)
-
-                                    result_mod = {}
-                                    result_mod['type'] = 'DELETED'
-                                    result_mod['destPath'] = destPath
-                                    result_mod['destUrl'] = destUrl_
-                                    result_mod['fileAfterPatchUrl'] = ''
-                                    result_mod['fileBeforePatchUrl'] =  fileBeforePatchUrlRem_
-                                    result_mod['patchPath'] = patchPath
-                                    result_mod['processBuggy'] = x_buggy
-                                    result_mod['processPatch'] = ''
-                                    result_mod['hunkMatchesBuggy'] = hunk_matches_buggy
-                                    result_mod['hunkMatchesPatch'] = ''
-                                    result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
-                                    self.result_dict[pr_nr][file]['result'] = result_mod
-
-
-                                elif status == 'modified':
-                                    """
-                                        Get the file before the patch from the variant1
-                                    """
-                                    if self.ct == self.len_tokens:
-                                        self.ct = 0
-                                    fileBeforePatchDir, fileBeforePatchUrlMod_ = classifier.getFileBeforePatch(self.repo_dir_files, self.variant1, sha, parent, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
-                                    self.ct += 1
-
-                                    """
-                                        Get the file after the patch from the variant1
-                                    """
-                                    if self.ct == self.len_tokens:
-                                        self.ct = 0
-                                    fileAfterPatchDir, fileAfterPatchUrlMod_ = classifier.getFileAfterPatch(self.repo_dir_files, self.variant1, sha, self.repo_file, pr_nr, file, new_file_dir, fileName, self.token_list[self.ct])
-                                    self.ct += 1
-                                  
-                                    """
-                                        Create the patch file in unified diff format
-                                    """
-                                    patch_lines = classifier.unified_diff(fileBeforePatchDir, fileAfterPatchDir)
-                                    patchPath = self.repo_dir_files + self.repo_file + '/' + self.variant1 + '/' + str(pr_nr) + '/' + sha + '/patches/' + new_file_dir
-                                    patchName = fileName.split('.')[0]
-                                    patchPath, dup_count = classifier.save_patch(patchPath, patchName, patch_lines, dup_count)
-                                        
-                                    """
-                                        Compare file before patch to current file for missed opportunities
-                                    """
-                                    _class_Buggy = ''
-                                    x_buggy_patch, x_buggy = classifier.processPatch(patchPath, destPath, 'buggy')
-                                    match_items_buggy = x_buggy.match_items()
-                                    removed = x_buggy_patch.removed()
-                                    source_hashes = x_buggy.source_hashes()
-
-                                    hunk_matches_buggy = classifier.find_hunk_matches_w_important_hash(match_items_buggy, 'MO', removed, source_hashes)
-
-                                    """
-                                        Compare file after patch to current file for effort duplication
-                                    """
-                                    _class_patch = ''
-                                    x_patch_patch, x_patch = classifier.processPatch(patchPath, destPath, 'patch')
-                                    added = x_patch_patch.added()
-                                    match_items_patch = x_patch.match_items()
-                                    source_hashes = x_patch.source_hashes()
-
-                                    hunk_matches_patch = classifier.find_hunk_matches_w_important_hash(match_items_patch, 'ED', added, source_hashes)
-
-                                    if len(hunk_matches_buggy) != len(hunk_matches_patch):
-                                        self.verbosePrint("Error \n The two sequences are not the same")
-                                        self.verbosePrint(f"Seq matches buggy has length {len(hunk_matches_buggy)}")
-                                        self.verbosePrint(f"Seq matches patch has length {len(hunk_matches_patch)}")
-                                        continue
-
-                                    hunk_classifications = []
-                                    for patch_nr in hunk_matches_buggy:
-                                        class_buggy = hunk_matches_buggy[patch_nr]['class']
-                                        class_patch = hunk_matches_patch[patch_nr]['class']
-                                            
-                                        hunk_class = classifier.classify_hunk(class_buggy, class_patch)
-                                        hunk_classifications.append(hunk_class)
-
-                                    result_mod = {}
-                                    result_mod['type'] = 'MODIFIED'
-                                    result_mod['destPath'] = destPath
-                                    result_mod['destUrl'] = destUrl_
-                                    result_mod['fileAfterPatchUrl'] = fileAfterPatchUrlMod_
-                                    result_mod['fileBeforePatchUrl'] =  fileBeforePatchUrlMod_
-                                    result_mod['patchPath'] = patchPath
-                                    result_mod['processBuggy'] = x_buggy
-                                    result_mod['processPatch'] = x_patch
-                                    result_mod['hunkMatchesBuggy'] = hunk_matches_buggy
-                                    result_mod['hunkMatchesPatch'] = hunk_matches_patch
-                                    result_mod['patchClass'] = classifier.classify_patch(hunk_classifications)
-
-                                    self.result_dict[pr_nr][file]['result'] = result_mod
+                                    print('Exception thrown is: ', e)
+                                    print('File: ', file)
                             else:
                                 result_mod = {}
-                                result_mod['patchClass'] = 'OTHER EXT'
-                                self.result_dict[pr_nr][file]['result'] = result_mod
-
-                        except Exception as e:
-                            result_mod = {}
-                            result_mod['patchClass'] = 'ERROR'
-                            self.result_dict[pr_nr][file]['result'] = result_mod
-                            print('Exception thrown is: ', e)
-                            print('File: ', file)
-                    else:
-                        result_mod = {}
-                        self.result_dict[pr_nr][file]['results']=list()
-                        if file_ext == 1:
-                            result_mod['patchClass'] = 'OTHER EXT'
-                            self.result_dict[pr_nr][file]['result'] = result_mod
-                        else:
-                            result_mod['patchClass'] = 'NOT EXISTING'
-                            self.result_dict[pr_nr][file]['result'] = result_mod
-                                
+                                self.result_dict[pr_nr][file]['results']=list()
+                                if file_ext == 1:
+                                    result_mod['patchClass'] = 'OTHER EXT'
+                                    self.result_dict[pr_nr][file]['result'] = result_mod
+                                else:
+                                    result_mod['patchClass'] = 'NOT EXISTING'
+                                    self.result_dict[pr_nr][file]['result'] = result_mod
+                except:
+                    continue
+                    
         self.pr_classifications = totals.final_class(self.result_dict)     
         all_counts = totals.count_all_classifications(self.pr_classifications)
         
